@@ -1,21 +1,19 @@
 package main
 
 import (
-	
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"log"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
+	"google.golang.org/api/cloudresourcemanager/v3"
+	"google.golang.org/api/idtoken"
 	"gopkg.in/yaml.v3"
-
-	cloudresourcemanager "google.golang.org/api/cloudresourcemanager/v3"
-	idtoken "google.golang.org/api/idtoken"
 )
 
 type UpdateIamBindingRequest struct {
@@ -47,8 +45,7 @@ func UpdateIamBinding(w http.ResponseWriter, r *http.Request) {
 	var updateIamBindingRequest UpdateIamBindingRequest
 	ctx := context.Background()
 
-	body, _ := ioutil.ReadAll(r.Body)
-	err := json.Unmarshal(body, &updateIamBindingRequest)
+	err := json.NewDecoder(r.Body).Decode(&updateIamBindingRequest)
 
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -105,23 +102,24 @@ func UpdateIamBinding(w http.ResponseWriter, r *http.Request) {
 func LogRequestResult(user string, updateIamBindingRequest UpdateIamBindingRequest, allowed bool) {
 	var action string
 	if allowed {
-		action = "allowed"
+		action = "allow"
 	} else {
-		action = "rejected"
+		action = "reject"
 
 	}
 
-	log.Printf(`Elevation request: user="%s" project="%s" role="%s" reason="%s" action="%s"`,
+	log.Printf(`Elevation request: user="%s" project="%s" role="%s" minutes="%d" reason="%s" action="%s"`,
 		user,
 		updateIamBindingRequest.Project,
 		updateIamBindingRequest.Role,
+		updateIamBindingRequest.Minutes,
 		updateIamBindingRequest.Reason,
 		action)
 }
 
 func ValidateRequestAgainstPolicy(user string, updateIamBindingRequest UpdateIamBindingRequest) bool {
 	var entityPolicies EntityPolicies
-	file, err := ioutil.ReadFile("policies.yaml")
+	file, err := os.ReadFile("configs/policies.yaml")
 
 	if err != nil {
 		log.Fatal(err)
