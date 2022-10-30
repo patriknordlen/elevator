@@ -29,7 +29,7 @@ func main() {
 }
 
 func Default(ctx context.Context) error {
-	sg.Deps(ctx, ConvcoCheck, FormatMarkdown, FormatYaml)
+	sg.Deps(ctx, FormatMarkdown, FormatYaml)
     sg.Deps(ctx, Proto.Default)
 	sg.Deps(ctx, GoLint, GoReview)
 	sg.Deps(ctx, GoTest)
