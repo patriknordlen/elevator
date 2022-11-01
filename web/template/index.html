@@ -1,1 +1,6 @@
 Hello {{ .Name }}!
+
+The following policies are available to you:
+{{ range .Policies }}
+{{ . }}
+{{ end }}

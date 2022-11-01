@@ -1,7 +1,6 @@
 package httputil
 
 import (
-	"fmt"
 	"net/http"
 	"log"
 	"context"
