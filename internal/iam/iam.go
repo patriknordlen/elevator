@@ -49,7 +49,7 @@ func HandleUpdateIamBindingRequest(w http.ResponseWriter, r *http.Request) {
 		Role:    fmt.Sprintf("roles/%s", updateIamBindingRequest.Role),
 		Members: []string{fmt.Sprintf("user:%s", user)},
 		Condition: &cloudresourcemanager.Expr{
-			Title:       fmt.Sprintf("Added by elevate %s", time.Now().Format(time.RFC3339)),
+			Title:       fmt.Sprintf("Added by elevator %s", time.Now().Format(time.RFC3339)),
 			Description: fmt.Sprintf("Reason supplied by user:\n%s", updateIamBindingRequest.Reason),
 			Expression:  fmt.Sprintf(`request.time < timestamp("%s")`, time.Now().Add(time.Duration(updateIamBindingRequest.Minutes)*time.Minute).Format(time.RFC3339Nano)),
 		},
