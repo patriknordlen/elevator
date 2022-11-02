@@ -30,5 +30,6 @@ func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/", httputil.RequireToken(IndexPage)).Methods("GET")
 	r.HandleFunc("/updateiam", httputil.RequireToken(iam.HandleUpdateIamBindingRequest)).Methods("POST")
+	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
 	http.ListenAndServe(":8080", r)
 }
