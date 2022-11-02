@@ -6,7 +6,6 @@ import (
 	"gopkg.in/yaml.v3"
 	
 	"github.com/einride/elevator/internal/types"
-	"github.com/einride/elevator/internal/httputil"
 )
 
 func ValidateRequestAgainstPolicy(user string, updateIamBindingRequest types.UpdateIamBindingRequest) bool {
@@ -15,12 +14,10 @@ func ValidateRequestAgainstPolicy(user string, updateIamBindingRequest types.Upd
 			p.Project == updateIamBindingRequest.Project &&
 			p.Role == updateIamBindingRequest.Role &&
 			(p.MaxMinutes == 0 || p.MaxMinutes >= updateIamBindingRequest.Minutes) {
-			httputil.LogRequestResult(user, updateIamBindingRequest, true)
 			return true
 		}
 	}
 
-	httputil.LogRequestResult(user, updateIamBindingRequest, false)
 	return false
 }
 

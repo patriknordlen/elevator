@@ -10,6 +10,7 @@ import (
 
 	"github.com/einride/elevator/internal/types"
 	"github.com/einride/elevator/internal/policy"
+	"github.com/einride/elevator/internal/httputil"
 	"google.golang.org/api/cloudresourcemanager/v3"
 )
 
@@ -25,10 +26,12 @@ func HandleUpdateIamBindingRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !policy.ValidateRequestAgainstPolicy(user, updateIamBindingRequest) {
+		httputil.LogRequestResult(user, updateIamBindingRequest, false)
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Forbidden by policy\n"))
 		return
 	}
+	httputil.LogRequestResult(user, updateIamBindingRequest, true)
 
 	crmService, err := cloudresourcemanager.NewService(ctx)
 
