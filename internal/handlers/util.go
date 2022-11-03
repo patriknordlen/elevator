@@ -1,16 +1,16 @@
-package httputil
+package handlers
 
 import (
-	"net/http"
-	"log"
 	"context"
+	"log"
+	"net/http"
 	"strings"
+
 	"google.golang.org/api/idtoken"
 
-	"github.com/einride/elevator/internal/types"
 )
 
-func LogRequestResult(user string, updateIamBindingRequest types.UpdateIamBindingRequest, allowed bool) {
+func LogRequestResult(user string, updateIamBindingRequest UpdateIamBindingRequest, allowed bool) {
 	var action string
 	if allowed {
 		action = "allow"
@@ -30,17 +30,16 @@ func LogRequestResult(user string, updateIamBindingRequest types.UpdateIamBindin
 
 func RequireToken(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.Background()
 		authHeader := strings.Split(r.Header.Get("Authorization"), " ")
 		if len(authHeader) == 2 && authHeader[0] == "Bearer" {
 			idToken := authHeader[1]
-			parsedToken, err := idtoken.Validate(ctx, idToken, "")
+			parsedToken, err := idtoken.Validate(r.Context(), idToken, "")
 
 			if err != nil {
 				log.Println("Error: ", err)
 				ReturnUnauthorized(w)
 			} else {
-				r.Header.Add("user-email", parsedToken.Claims["email"].(string))
+				r := r.WithContext(context.WithValue(r.Context(), "user-email", parsedToken.Claims["email"].(string)))
 				next(w, r)
 			}
 		} else {

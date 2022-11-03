@@ -9,16 +9,28 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/einride/elevator/internal/types"
 	"google.golang.org/api/cloudidentity/v1"
 )
 
-func ValidateRequestAgainstPolicy(user string, updateIamBindingRequest types.UpdateIamBindingRequest) bool {
-	for _, p := range GetPoliciesForUser(user) {
-		if
-			p.Project == updateIamBindingRequest.Project &&
-			p.Role == updateIamBindingRequest.Role &&
-			(p.MaxMinutes == 0 || p.MaxMinutes >= updateIamBindingRequest.Minutes) {
+type EntityPolicies []EntityPolicy
+
+type EntityPolicy struct {
+	Type     string   `yaml:"type"`
+	Name     string   `yaml:"name"`
+	Policies []Policy `yaml:"policies"`
+}
+
+type Policy struct {
+	Project     string `yaml:"project"`
+	Role        string `yaml:"role"`
+	MaxMinutes	int    `yaml:"max_minutes"`
+}
+
+func ValidateRequestAgainstPolicy(ctx context.Context, user string, project string, role string, minutes int) bool {
+	for _, p := range GetUserPolicies(ctx, user) {
+		if p.Project == project &&
+			p.Role == role &&
+			(p.MaxMinutes == 0 || p.MaxMinutes >= minutes) {
 			return true
 		}
 	}
@@ -26,9 +38,9 @@ func ValidateRequestAgainstPolicy(user string, updateIamBindingRequest types.Upd
 	return false
 }
 
-func GetPoliciesForUser(user string) []types.Policy {
-	var entityPolicies types.EntityPolicies
-	var userPolicies []types.Policy
+func GetUserPolicies(ctx context.Context, user string) []Policy {
+	var entityPolicies EntityPolicies
+	var userPolicies []Policy
 
 	file, err := os.ReadFile("configs/policies.yaml")
 
@@ -39,7 +51,7 @@ func GetPoliciesForUser(user string) []types.Policy {
 	yaml.Unmarshal(file, &entityPolicies)
 
 	for _, ep := range entityPolicies {
-		if (ep.Type == "user" && ep.Name == user) || (ep.Type == "group" && UserIsMemberOfGroup(user, ep.Name)) {
+		if (ep.Type == "user" && ep.Name == user) || (ep.Type == "group" && UserIsMemberOfGroup(ctx, user, ep.Name)) {
 			userPolicies = append(userPolicies, ep.Policies...)
 		}
 	}
@@ -47,10 +59,7 @@ func GetPoliciesForUser(user string) []types.Policy {
 	return userPolicies
 }
 
-
-func UserIsMemberOfGroup(user string, group string) bool {
-	ctx := context.Background()
-
+func UserIsMemberOfGroup(ctx context.Context, user string, group string) bool {
 	cisvc, _ := cloudidentity.NewService(ctx)
 	group_id, err := cisvc.Groups.Lookup().GroupKeyId(group).Do()
 	res, err := cisvc.Groups.Memberships.CheckTransitiveMembership(group_id.Name).Query(fmt.Sprintf("member_key_id=='%s'", user)).Do()
@@ -58,13 +67,12 @@ func UserIsMemberOfGroup(user string, group string) bool {
 	if err != nil {
 		log.Println(err)
 	}
-	
+
 	return res.HasMembership
 }
 
 // This could be used if permissions allow. See https://pkg.go.dev/google.golang.org/api@v0.101.0/cloudidentity/v1#GroupsMembershipsService.SearchTransitiveGroups
-func GetUserGroups(user string) string {
-	ctx := context.Background()
+func GetUserGroups(ctx context.Context, user string) string {
 	cisvc, _ := cloudidentity.NewService(ctx)
 
 	var groups []string

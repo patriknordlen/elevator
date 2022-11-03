@@ -2,41 +2,18 @@ package iam
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"log"
-	"net/http"
 	"time"
 
-	"github.com/einride/elevator/internal/types"
-	"github.com/einride/elevator/internal/policy"
-	"github.com/einride/elevator/internal/httputil"
 	"google.golang.org/api/cloudresourcemanager/v3"
+
 )
 
-func HandleUpdateIamBindingRequest(w http.ResponseWriter, r *http.Request) {
-	var updateIamBindingRequest types.UpdateIamBindingRequest
-	ctx := context.Background()
-	user := r.Header.Get("user-email")
-	err := json.NewDecoder(r.Body).Decode(&updateIamBindingRequest)
-
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	if !policy.ValidateRequestAgainstPolicy(user, updateIamBindingRequest) {
-		httputil.LogRequestResult(user, updateIamBindingRequest, false)
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Forbidden by policy\n"))
-		return
-	}
-	httputil.LogRequestResult(user, updateIamBindingRequest, true)
-
+func UpdateIamBinding(ctx context.Context, user string, project string, role string, minutes int, reason string) error {
 	crmService, err := cloudresourcemanager.NewService(ctx)
 
 	policy, err := crmService.Projects.GetIamPolicy(
-		fmt.Sprintf("projects/%s", updateIamBindingRequest.Project),
+		fmt.Sprintf("projects/%s", project),
 		&cloudresourcemanager.GetIamPolicyRequest{
 			Options: &cloudresourcemanager.GetPolicyOptions{
 				RequestedPolicyVersion: 3,
@@ -45,29 +22,24 @@ func HandleUpdateIamBindingRequest(w http.ResponseWriter, r *http.Request) {
 	).Do()
 
 	if err != nil {
-		log.Println(err)
+		return err
 	}
 
 	newBinding := &cloudresourcemanager.Binding{
-		Role:    fmt.Sprintf("roles/%s", updateIamBindingRequest.Role),
-		Members: []string{fmt.Sprintf("user:%s", user)},
+		Role:    fmt.Sprintf("roles/%s", role),
+		Members: []string{fmt.Sprintf("user:%s", ctx.Value("user-email"))},
 		Condition: &cloudresourcemanager.Expr{
 			Title:       fmt.Sprintf("Added by elevator %s", time.Now().Format(time.RFC3339)),
-			Description: fmt.Sprintf("Reason supplied by user:\n%s", updateIamBindingRequest.Reason),
-			Expression:  fmt.Sprintf(`request.time < timestamp("%s")`, time.Now().Add(time.Duration(updateIamBindingRequest.Minutes)*time.Minute).Format(time.RFC3339Nano)),
+			Description: fmt.Sprintf("Reason supplied by user:\n%s", reason),
+			Expression:  fmt.Sprintf(`request.time < timestamp("%s")`, time.Now().Add(time.Duration(minutes)*time.Minute).Format(time.RFC3339Nano)),
 		},
 	}
 
 	policy.Bindings = append(policy.Bindings, newBinding)
 	policy.Version = 3
 	setIamPolicyRequest := &cloudresourcemanager.SetIamPolicyRequest{Policy: policy}
-	_, err = crmService.Projects.SetIamPolicy(fmt.Sprintf("projects/%s", updateIamBindingRequest.Project), setIamPolicyRequest).Do()
+	_, err = crmService.Projects.SetIamPolicy(fmt.Sprintf("projects/%s", project), setIamPolicyRequest).Do()
 
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("Error: %s", err)))
-	} else {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Success!\n"))
-	}
+	return err
 }
+
