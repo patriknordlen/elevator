@@ -1,6 +1,63 @@
-Hello {{ .Name }}!
+<html>
+  <head>
+    <title>elevator</title>
+    <script src="/static/js/jquery-3.6.1.min.js"></script>
+    <link rel="stylesheet" href="/static/css/pico.min.css"/>
+  </head>
+  <body>
+    <main class="container">
+      <h1>elevator</h1>
+      <form id="mainform">
+        <label for="role">Role</label>
+        <select id="role" name="role" required>
+          <option value="" selected>Select a role...</option>
+            {{ range .Policies }}
+            <option value="{{ .Name }}:{{ .Role }}">{{ .Name }}: {{ .Role }}</option>
+            {{ end }}
+        </select>
+        <label for="duration">Duration (in minutes)</label>
+        <input type="number" id="minutes" name="minutes"/>
+        <label for="reason">Reason for elevation request</label>
+        <input type="text" id="reason" name="reason"/>
+        <input type="submit" value="Submit" />
+      </form>
+      <div class="grid" style="text-align: center">
+        <div id="result"></div>
+      </div>
+    </main>
+  </body>
+  <script>
+    $("#mainform").submit(function (e) {
+      jsonData = {}
+      const formData = $(this).serializeArray()
+      jQuery.each(formData, function() {
+        if (this.name == "role") {
+          jsonData["project"] = this.value.split(":")[0]
+          jsonData["role"] = this.value.split(":")[1]
+        } else {
+          jsonData[this.name] = this.value || '';
+        }
+      })
 
-The following policies are available to you:
-{{ range .Policies }}
-{{ . }}
-{{ end }}
+      $.post({
+        url: "/updateiam",
+        contentType: "application/json",
+        data: JSON.stringify(jsonData),
+        beforeSend: () =>
+          $("#result")
+            .attr("style", "color:green")
+            .attr("aria-busy", "true")
+            .text(""),
+        success: (data) => $("#result").attr("aria-busy", "false").text(data),
+        error: (err) => {
+          $("#result")
+            .attr("aria-busy", "false")
+            .attr("style", "color:red")
+            .text(`Request failed: ${err.responseText}`)
+        }
+      })
+
+      e.preventDefault()
+    })
+  </script>
+</html>

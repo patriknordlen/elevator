@@ -15,20 +15,21 @@ import (
 type EntityPolicies []EntityPolicy
 
 type EntityPolicy struct {
-	Type     string   `yaml:"type"`
 	Name     string   `yaml:"name"`
 	Policies []Policy `yaml:"policies"`
 }
 
 type Policy struct {
-	Project     string `yaml:"project"`
+	Type		string `yaml:"type"`
+	Name        string `yaml:"name"`
 	Role        string `yaml:"role"`
 	MaxMinutes	int    `yaml:"max_minutes"`
 }
 
 func ValidateRequestAgainstPolicy(ctx context.Context, user string, project string, role string, minutes int) bool {
 	for _, p := range GetUserPolicies(ctx, user) {
-		if p.Project == project &&
+		if p.Type == "project" &&
+			p.Name == project &&
 			p.Role == role &&
 			(p.MaxMinutes == 0 || p.MaxMinutes >= minutes) {
 			return true
@@ -51,7 +52,9 @@ func GetUserPolicies(ctx context.Context, user string) []Policy {
 	yaml.Unmarshal(file, &entityPolicies)
 
 	for _, ep := range entityPolicies {
-		if (ep.Type == "user" && ep.Name == user) || (ep.Type == "group" && UserIsMemberOfGroup(ctx, user, ep.Name)) {
+		// Each entity is in the format "type:name"
+		entity := strings.Split(ep.Name, ":")
+		if (entity[0] == "user" && entity[1] == user) || (entity[0] == "group" && UserIsMemberOfGroup(ctx, user, entity[1])) {
 			userPolicies = append(userPolicies, ep.Policies...)
 		}
 	}
