@@ -9,9 +9,9 @@ import (
 	"google.golang.org/api/idtoken"
 )
 
-func MockUser(next http.HandlerFunc) http.HandlerFunc {
+func MockUser(next http.HandlerFunc, user string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		next(w, r.WithContext(context.WithValue(r.Context(), "user-email", "patrik.nordlen@einride.tech")))
+		next(w, r.WithContext(context.WithValue(r.Context(), "user-email", user)))
 	}
 }
 
