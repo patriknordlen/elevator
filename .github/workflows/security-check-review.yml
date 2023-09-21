@@ -1,0 +1,12 @@
+name: Security-Check-Review
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  security-check-review:
+    uses: einride/security-scanning-workflows/.github/workflows/checks.yml@master
+    permissions:
+      pull-requests: "write"
+      contents: "read"
