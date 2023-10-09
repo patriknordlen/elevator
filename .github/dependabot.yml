@@ -5,3 +5,8 @@ updates:
     directory: .sage
     schedule:
       interval: weekly
+
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
