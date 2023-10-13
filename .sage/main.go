@@ -54,7 +54,7 @@ func GoLint(ctx context.Context) error {
 
 func GoLicenses(ctx context.Context) error {
 	sg.Logger(ctx).Println("checking Go licenses...")
-	return sggolicenses.CheckDir(ctx, sg.FromGitRoot("."))
+	return sggolicenses.CheckDir(ctx, sg.FromGitRoot("internal"))
 }
 
 func FormatMarkdown(ctx context.Context) error {
