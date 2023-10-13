@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"text/template"
 
@@ -18,5 +19,7 @@ func IndexPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	t, _ := template.ParseFiles("web/template/index.html")
-	t.Execute(w, data)
+	if err := t.Execute(w, data); err != nil {
+		log.Fatal(err)
+	}
 }
