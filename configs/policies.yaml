@@ -1,19 +1,14 @@
-- name: group:security@einride.tech
+- name: group:somegroup@some.org
   policies:
     - type: project
-      name: e-security-experiments
+      name: a-project-name
       role: editor
-- name: user:patrik.nordlen@einride.tech
+- name: user:someuser@some.org
   policies:
     - type: project
-      name: e-security-experiments
+      name: a-project-name
       role: bigquery.jobUser
       max_minutes: 10
     - type: project
-      name: e-security-experiments
-      role: browser
-- name: user:anton.sapozhnikov@einride.tech
-  policies:
-    - type: project
-      name: e-security-experiments
+      name: a-project-name
       role: browser
