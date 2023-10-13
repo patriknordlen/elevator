@@ -11,7 +11,6 @@ func LogRequestResult(user string, updateIamBindingRequest UpdateIamBindingReque
 		action = "allow"
 	} else {
 		action = "reject"
-
 	}
 
 	log.Printf(`Elevation request: user="%s" project="%s" role="%s" minutes="%d" reason="%s" action="%s"`,
@@ -25,5 +24,7 @@ func LogRequestResult(user string, updateIamBindingRequest UpdateIamBindingReque
 
 func ReturnUnauthorized(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusForbidden)
-	w.Write([]byte("Unauthorized\n"))
+	if _, err := w.Write([]byte("Unauthorized\n")); err != nil {
+		log.Println(err)
+	}
 }

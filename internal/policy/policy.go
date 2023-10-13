@@ -7,9 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"gopkg.in/yaml.v3"
-
 	"google.golang.org/api/cloudidentity/v1"
+	"gopkg.in/yaml.v3"
 )
 
 type EntityPolicies []EntityPolicy
@@ -20,13 +19,13 @@ type EntityPolicy struct {
 }
 
 type Policy struct {
-	Type		string `yaml:"type"`
-	Name        string `yaml:"name"`
-	Role        string `yaml:"role"`
-	MaxMinutes	int    `yaml:"max_minutes"`
+	Type       string `yaml:"type"`
+	Name       string `yaml:"name"`
+	Role       string `yaml:"role"`
+	MaxMinutes int    `yaml:"max_minutes"`
 }
 
-func ValidateRequestAgainstPolicy(ctx context.Context, user string, project string, role string, minutes int) bool {
+func ValidateRequestAgainstPolicy(ctx context.Context, user, project, role string, minutes int) bool {
 	for _, p := range GetUserPolicies(ctx, user) {
 		if p.Type == "project" &&
 			p.Name == project &&
@@ -44,12 +43,13 @@ func GetUserPolicies(ctx context.Context, user string) []Policy {
 	var userPolicies []Policy
 
 	file, err := os.ReadFile("configs/policies.yaml")
-
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	yaml.Unmarshal(file, &entityPolicies)
+	if err := yaml.Unmarshal(file, &entityPolicies); err != nil {
+		log.Fatal(err)
+	}
 
 	for _, ep := range entityPolicies {
 		// Each entity is in the format "type:name"
@@ -62,11 +62,18 @@ func GetUserPolicies(ctx context.Context, user string) []Policy {
 	return userPolicies
 }
 
-func UserIsMemberOfGroup(ctx context.Context, user string, group string) bool {
+func UserIsMemberOfGroup(ctx context.Context, user, group string) bool {
 	cisvc, _ := cloudidentity.NewService(ctx)
-	group_id, err := cisvc.Groups.Lookup().GroupKeyId(group).Do()
-	res, err := cisvc.Groups.Memberships.CheckTransitiveMembership(group_id.Name).Query(fmt.Sprintf("member_key_id=='%s'", user)).Do()
-
+	groupID, err := cisvc.Groups.Lookup().GroupKeyId(group).Do()
+	if err != nil {
+		log.Println(err)
+	}
+	res, err := cisvc.
+		Groups.
+		Memberships.
+		CheckTransitiveMembership(groupID.Name).
+		Query(fmt.Sprintf("member_key_id=='%s'", user)).
+		Do()
 	if err != nil {
 		log.Println(err)
 	}
@@ -74,13 +81,17 @@ func UserIsMemberOfGroup(ctx context.Context, user string, group string) bool {
 	return res.HasMembership
 }
 
-// This could be used if permissions allow. See https://pkg.go.dev/google.golang.org/api@v0.101.0/cloudidentity/v1#GroupsMembershipsService.SearchTransitiveGroups
+// This could be used if permissions allow. See:
+// https://pkg.go.dev/google.golang.org/api@v0.101.0/cloudidentity/v1#GroupsMembershipsService.SearchTransitiveGroups
 func GetUserGroups(ctx context.Context, user string) string {
 	cisvc, _ := cloudidentity.NewService(ctx)
 
 	var groups []string
 	fmt.Println(user)
-	ret, err := cisvc.Groups.Memberships.SearchTransitiveGroups("groups/-").Query(fmt.Sprintf("member_key_id=='%s' && 'cloudidentity.googleapis.com/groups.discussion_forum' in labels", user)).Do()
+	ret, err := cisvc.Groups.Memberships.SearchTransitiveGroups("groups/-").Query(fmt.Sprintf(
+		"member_key_id=='%s' && 'cloudidentity.googleapis.com/groups.discussion_forum' in labels",
+		user,
+	)).Do()
 	if err != nil {
 		log.Println(err)
 	} else {

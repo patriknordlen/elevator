@@ -2,16 +2,20 @@ package handlers
 
 import (
 	"context"
-	"net/http"
 	"log"
+	"net/http"
 	"strings"
 
 	"google.golang.org/api/idtoken"
 )
 
+type key int
+
+const userKey key = iota
+
 func MockUser(next http.HandlerFunc, user string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		next(w, r.WithContext(context.WithValue(r.Context(), "user-email", user)))
+		next(w, r.WithContext(context.WithValue(r.Context(), userKey, user)))
 	}
 }
 
@@ -26,7 +30,7 @@ func RequireToken(next http.HandlerFunc) http.HandlerFunc {
 				log.Println("Error: ", err)
 				ReturnUnauthorized(w)
 			} else {
-				next(w, r.WithContext(context.WithValue(r.Context(), "user-email", parsedToken.Claims["email"].(string))))
+				next(w, r.WithContext(context.WithValue(r.Context(), userKey, parsedToken.Claims["email"].(string))))
 			}
 		} else {
 			ReturnUnauthorized(w)
