@@ -9,7 +9,7 @@ import (
 )
 
 func IndexPage(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value("user-email").(string)
+	user := r.Context().Value(userKey).(string)
 	data := struct {
 		Name     string
 		Policies []policy.Policy

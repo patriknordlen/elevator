@@ -10,7 +10,6 @@ import (
 )
 
 type key int
-
 const userKey key = iota
 
 func MockUser(next http.HandlerFunc, user string) http.HandlerFunc {
@@ -30,7 +29,7 @@ func RequireToken(next http.HandlerFunc) http.HandlerFunc {
 				log.Println("Error: ", err)
 				ReturnUnauthorized(w)
 			} else {
-				next(w, r.WithContext(context.WithValue(r.Context(), userKey, parsedToken.Claims["email"].(string))))
+				next(w, r.WithContext(context.WithValue(r.Context(), userKey, parsedToken.Claims["email"])))
 			}
 		} else {
 			ReturnUnauthorized(w)
