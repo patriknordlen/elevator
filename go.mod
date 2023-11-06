@@ -3,7 +3,7 @@ module github.com/einride/elevator
 go 1.19
 
 require (
-	github.com/gorilla/mux v1.8.0
+	github.com/gorilla/mux v1.8.1
 	google.golang.org/api v0.148.0
 	gopkg.in/yaml.v3 v3.0.1
 )
