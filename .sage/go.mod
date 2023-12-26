@@ -2,4 +2,4 @@ module github.com/einride/elevator/.sage
 
 go 1.21.0
 
-require go.einride.tech/sage v0.244.0
+require go.einride.tech/sage v0.260.0
